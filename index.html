@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOS SYSTEM — Live Surveillance & Optical Telemetry</title>
+  <meta name="description" content="SOS SYSTEM - Real-time AI-powered live surveillance, optical telemetry, and emergency alert dispatch command center." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwindcss.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ["'JetBrains Mono'", "'Share Tech Mono'", "'Courier New'", 'monospace'],
+          },
+          colors: {
+            'sos-bg': '#050a14',
+            'sos-panel': '#0a1222',
+            'sos-border': '#1a2744',
+            'sos-cyan': '#38bdf8',
+            'sos-blue': '#2563eb',
+            'sos-red': '#dc2626',
+            'sos-green': '#10b981',
+            'sos-orange': '#f97316',
+            'sos-yellow': '#eab308',
+            'sos-slate': '#1e293b',
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="font-mono bg-sos-bg text-gray-300 min-h-screen antialiased">
+
+  <!-- ============================================================ -->
+  <!-- TOP HEADER BAR                                               -->
+  <!-- ============================================================ -->
+  <header id="topHeader" class="sticky top-0 z-50 flex items-center justify-between px-5 py-2.5 border-b border-sos-border bg-sos-panel/95 backdrop-blur-md header-glow">
+    <div class="flex items-center gap-3">
+      <span class="sos-logo text-lg md:text-xl font-extrabold tracking-[0.35em] text-sos-cyan uppercase select-none" style="text-shadow: 0 0 18px #38bdf855, 0 0 40px #38bdf822;">SOS SYSTEM</span>
+    </div>
+    <div class="flex items-center gap-2.5 flex-wrap justify-end">
+      <!-- Light Mode Toggle -->
+      <button id="btnLightMode" onclick="SOS.toggleTheme()" class="header-pill flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-sos-slate bg-sos-slate/60 text-gray-400 hover:text-white hover:border-sos-cyan/40 transition-all duration-200 cursor-pointer select-none">
+        <span id="themeIcon">☀</span> <span id="themeLabel">LIGHT MODE</span>
+      </button>
+      <!-- Audio Toggle -->
+      <button id="btnAudio" onclick="SOS.toggleAudio()" class="header-pill flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-sos-slate bg-sos-slate/60 text-gray-400 hover:text-white hover:border-sos-cyan/40 transition-all duration-200 cursor-pointer select-none">
+        <span id="audioIcon">🔊</span> <span id="audioLabel">AUDIO ON</span>
+      </button>
+      <!-- System Status -->
+      <div class="header-pill flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border border-emerald-700 bg-[#064e3b] text-emerald-400 select-none">
+        <span class="system-pulse-dot"></span> SYSTEM: ACTIVE
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- MAIN CONTENT WRAPPER                                         -->
+  <!-- ============================================================ -->
+  <main class="p-3 md:p-4 space-y-3">
+
+    <!-- ========================================================== -->
+    <!-- UPPER PANEL: LIVE SURVEILLANCE & OPTICAL TELEMETRY          -->
+    <!-- ========================================================== -->
+    <section id="surveillancePanel" class="sos-card">
+      <!-- Top Control Row -->
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-3 border-b border-sos-border">
+        <!-- Left: Title -->
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="flex items-center justify-center w-8 h-8 rounded-md bg-sos-blue/15 text-sos-cyan text-lg flex-shrink-0">📹</div>
+          <div class="min-w-0">
+            <h1 class="text-sm font-bold text-white tracking-wide truncate">LIVE SURVEILLANCE & OPTICAL TELEMETRY</h1>
+            <p id="camSubtitle" class="text-[11px] text-sos-cyan tracking-wider truncate">DRONE-01 // SECTOR 7 — DYNAMIC ORBIT (ALT 120M)</p>
+          </div>
+        </div>
+        <!-- Center: Camera Feed Tabs -->
+        <div id="camTabs" class="flex items-center gap-1.5 flex-wrap">
+          <button data-cam="0" class="cam-tab" onclick="SOS.switchCam(0)">• CAM-01 [GATE-4B]</button>
+          <button data-cam="1" class="cam-tab" onclick="SOS.switchCam(1)">• CAM-02 [STORAGE-B]</button>
+          <button data-cam="2" class="cam-tab" onclick="SOS.switchCam(2)">• CAM-03 [HELIPAD]</button>
+          <button data-cam="3" class="cam-tab active" onclick="SOS.switchCam(3)">• DRONE-01 [AERIAL]</button>
+        </div>
+        <!-- Right: Telemetry Badges -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span class="badge-rec flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-900/50 border border-red-600 text-red-400">
+            <span class="rec-dot"></span> REC 720p HD
+          </span>
+          <span id="fpsBadge" class="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/30 border border-emerald-600 text-emerald-400">
+            1.0 FPS
+          </span>
+          <span id="bitrateBadge" class="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-sos-slate/60 border border-sos-slate text-gray-400">
+            0.17 Mbps
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Video Viewport -->
+      <div id="videoViewport" class="relative w-full bg-black overflow-hidden" style="height: 400px;">
+        <video id="liveVideo" autoplay muted playsinline class="absolute inset-0 w-full h-full object-cover transition-transform duration-200"></video>
+        <canvas id="analysisCanvas" class="hidden"></canvas>
+        <!-- CRT Scanline Overlay -->
+        <div class="scanline-overlay absolute inset-0 pointer-events-none z-10"></div>
+        <!-- Night Vision / Thermal Overlay -->
+        <div id="visionOverlay" class="absolute inset-0 pointer-events-none z-[5]"></div>
+
+        <!-- Floating HUD Bar -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#091326]/95 border border-sos-slate backdrop-blur-sm shadow-lg shadow-black/40">
+          <!-- Vision Modes -->
+          <button data-vision="optical" onclick="SOS.setVision('optical')" class="vision-btn active text-[10px] px-2 py-1 rounded-full font-bold">OPTICAL</button>
+          <button data-vision="night" onclick="SOS.setVision('night')" class="vision-btn text-[10px] px-2 py-1 rounded-full font-bold">NIGHT VISION</button>
+          <button data-vision="thermal" onclick="SOS.setVision('thermal')" class="vision-btn text-[10px] px-2 py-1 rounded-full font-bold">THERMAL FLIR</button>
+          <span class="hud-divider"></span>
+          <!-- PTZ Controls -->
+          <button onclick="SOS.ptz('left')" class="ptz-btn" title="Pan Left">◀</button>
+          <button onclick="SOS.ptz('up')" class="ptz-btn" title="Tilt Up">▲</button>
+          <button onclick="SOS.ptz('down')" class="ptz-btn" title="Tilt Down">▼</button>
+          <button onclick="SOS.ptz('right')" class="ptz-btn" title="Pan Right">▶</button>
+          <button onclick="SOS.ptz('zoomin')" class="ptz-btn font-bold" title="Zoom In">+</button>
+          <button onclick="SOS.ptz('zoomout')" class="ptz-btn font-bold" title="Zoom Out">−</button>
+          <button onclick="SOS.ptz('reset')" class="ptz-btn text-[9px] !px-2 font-bold text-sos-cyan" title="Reset PTZ">RESET</button>
+          <span class="hud-divider"></span>
+          <!-- AI Tracking -->
+          <button id="btnAiTracking" onclick="SOS.toggleAiTracking()" class="flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-bold bg-emerald-900/40 border border-emerald-600 text-emerald-400 hover:bg-emerald-800/50 transition-all cursor-pointer select-none">
+            <span class="ai-dot"></span> AI TRACKING
+          </button>
+          <!-- Snapshot -->
+          <button onclick="SOS.snapshot()" class="text-[10px] px-2 py-1 rounded-full font-bold bg-sos-slate/70 border border-sos-slate text-gray-300 hover:text-white hover:border-sos-cyan/40 transition-all cursor-pointer select-none">📷 SNAPSHOT</button>
+        </div>
+      </div>
+
+      <!-- Bottom Telemetry Strip -->
+      <div class="flex items-center justify-between flex-wrap gap-2 px-4 py-2.5 border-t border-sos-border text-[10px] tracking-wider text-gray-500 font-semibold">
+        <span>ENCRYPTION: QUANTUM-RESISTANT 256</span>
+        <span id="panAngleText">PAN ANGLE: 0.0°</span>
+        <span id="tiltAngleText">TILT ANGLE: 0.0°</span>
+        <span id="luxText">AMBIENT LIGHT: — LUX</span>
+        <span id="thermalText">THERMAL SENSOR: CALIBRATED (21.4°C)</span>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- LOWER SPLIT: ALERT LOG (LEFT 72%) | RADAR & MATRIX (RIGHT) -->
+    <!-- ========================================================== -->
+    <div class="flex flex-col xl:flex-row gap-3">
+
+      <!-- ======================================================== -->
+      <!-- LEFT: EMERGENCY ALERT LOG (72%)                          -->
+      <!-- ======================================================== -->
+      <section id="alertPanel" class="sos-card xl:w-[72%] flex flex-col">
+        <!-- Header Row -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 p-3 border-b border-sos-border">
+          <div class="flex items-center gap-2.5">
+            <div class="flex items-center justify-center w-8 h-8 rounded-md bg-red-900/30 text-red-400 text-lg flex-shrink-0">🔔</div>
+            <div>
+              <h2 class="text-sm font-bold text-white tracking-wide">EMERGENCY ALERT LOG</h2>
+              <p class="text-[10px] text-gray-500 tracking-wider">REAL-TIME THREAT TELEMETRY & INCIDENT DISPATCH QUEUE</p>
+            </div>
+          </div>
+          <!-- Severity Counters -->
+          <div id="severityCounters" class="flex items-center gap-2 flex-wrap">
+            <span class="sev-counter border-red-500 text-red-400"><span class="sev-dot bg-red-500"></span><span id="cntCritical">0</span> CRITICAL</span>
+            <span class="sev-counter border-orange-500 text-orange-400"><span class="sev-dot bg-orange-500"></span><span id="cntHigh">0</span> HIGH</span>
+            <span class="sev-counter border-yellow-500 text-yellow-400"><span class="sev-dot bg-yellow-500"></span><span id="cntMod">0</span> MOD</span>
+            <span class="sev-counter border-blue-500 text-blue-400"><span class="sev-dot bg-blue-500"></span><span id="cntLow">0</span> LOW</span>
+          </div>
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button onclick="SOS.newDispatch()" class="px-3 py-1.5 rounded-md text-[11px] font-bold bg-sos-blue hover:bg-blue-700 text-white transition-all cursor-pointer select-none">+ NEW SOS DISPATCH</button>
+            <button onclick="SOS.purgeLogs()" class="px-3 py-1.5 rounded-md text-[11px] font-bold bg-sos-red hover:bg-red-700 text-white transition-all cursor-pointer select-none">PURGE LOGS</button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 py-2 border-b border-sos-border/60">
+          <!-- Threat Filter -->
+          <div class="flex items-center gap-1.5 flex-wrap text-[10px] font-semibold">
+            <span class="text-gray-500 mr-1">THREAT FILTER:</span>
+            <button data-filter="all" onclick="SOS.filterAlerts('all')" class="filter-pill active">ALL (<span id="filterAllCnt">0</span>)</button>
+            <button data-filter="critical" onclick="SOS.filterAlerts('critical')" class="filter-pill text-red-400">• CRITICAL</button>
+            <button data-filter="high" onclick="SOS.filterAlerts('high')" class="filter-pill text-orange-400">• HIGH</button>
+            <button data-filter="moderate" onclick="SOS.filterAlerts('moderate')" class="filter-pill text-yellow-400">• MODERATE</button>
+            <button data-filter="low" onclick="SOS.filterAlerts('low')" class="filter-pill text-blue-400">• LOW</button>
+          </div>
+          <!-- Search + Status -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <input id="alertSearch" type="text" placeholder="Search by location, threat, ID..." class="search-input" oninput="SOS.searchAlerts()" />
+            <div class="flex items-center gap-1 text-[10px] font-semibold">
+              <button data-status="all" onclick="SOS.filterStatus('all')" class="status-tab active">ALL</button>
+              <button data-status="active" onclick="SOS.filterStatus('active')" class="status-tab">ACTIVE</button>
+              <button data-status="acknowledged" onclick="SOS.filterStatus('acknowledged')" class="status-tab">ACK'D</button>
+              <button data-status="resolved" onclick="SOS.filterStatus('resolved')" class="status-tab">RESOLVED</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert Queue Container -->
+        <div id="alertQueue" class="flex-1 overflow-y-auto p-3 space-y-2 min-h-[280px] max-h-[420px] custom-scroll">
+          <!-- Empty state rendered by JS -->
+        </div>
+
+        <!-- Footer Row -->
+        <div class="flex items-center justify-between px-3 py-2 border-t border-sos-border text-[10px] tracking-wider text-gray-500 font-semibold">
+          <span id="alertFooterInfo">SHOWING 0 OF 0 ALERTS • AUTO-REFRESH: 1 SEC</span>
+          <div class="flex items-center gap-2">
+            <button onclick="SOS.ackAll()" class="px-2.5 py-1 rounded text-[10px] font-bold bg-sos-slate/70 border border-sos-slate text-gray-300 hover:text-white hover:border-sos-cyan/40 transition-all cursor-pointer select-none">ACKNOWLEDGE ALL</button>
+            <button onclick="SOS.exportLog()" class="px-2.5 py-1 rounded text-[10px] font-bold bg-sos-slate/70 border border-sos-slate text-gray-300 hover:text-white hover:border-sos-cyan/40 transition-all cursor-pointer select-none">EXPORT LOG</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- RIGHT: RADAR, MATRIX, TELEMETRY (28%)                    -->
+      <!-- ======================================================== -->
+      <aside class="xl:w-[28%] flex flex-col gap-3">
+
+        <!-- Card 1: Sector Geo-Spatial Radar -->
+        <div class="sos-card">
+          <div class="flex items-center justify-between px-3 py-2 border-b border-sos-border">
+            <span class="text-[11px] font-bold text-white tracking-wide">• SECTOR GEO-SPATIAL RADAR</span>
+            <span id="radarStatus" class="text-[10px] font-semibold text-gray-500 tracking-wider">NO ACTIVE INCIDENTS</span>
+          </div>
+          <div id="radarMap" class="w-full" style="height: 220px;"></div>
+          <div class="flex items-center justify-center gap-4 px-3 py-2 border-t border-sos-border text-[9px] font-bold tracking-wider">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> CRITICAL</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-500"></span> HIGH</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> MODERATE</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> LOW</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Tactical Response Matrix -->
+        <div class="sos-card">
+          <div class="flex items-center justify-between px-3 py-2 border-b border-sos-border">
+            <span class="text-[11px] font-bold text-white tracking-wide">TACTICAL RESPONSE MATRIX</span>
+            <span class="text-[10px] font-semibold text-emerald-400 tracking-wider">3/4 READY</span>
+          </div>
+          <div class="p-2.5 space-y-2">
+            <!-- Unit 1 -->
+            <div class="trm-unit">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-white">RAPID SQUAD ALPHA</span>
+                <span class="trm-badge bg-orange-900/40 border-orange-600 text-orange-400">EN ROUTE</span>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[9px] text-gray-500">ASSIGNED: SECTOR 4B • ETA: 01m 45s</span>
+                <button class="trm-action-btn">RADIO</button>
+              </div>
+            </div>
+            <!-- Unit 2 -->
+            <div class="trm-unit">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-white">MEDIC TEAM 02</span>
+                <span class="trm-badge bg-red-900/40 border-red-600 text-red-400">ON SCENE</span>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[9px] text-gray-500">LOCATION: CHEMICAL DEPOT • TRIAGE ACTIVE</span>
+                <button class="trm-action-btn">RADIO</button>
+              </div>
+            </div>
+            <!-- Unit 3 -->
+            <div class="trm-unit">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold text-white">RECON DRONE 01</span>
+                <span class="trm-badge bg-emerald-900/40 border-emerald-600 text-emerald-400">AIRBORNE</span>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <span class="text-[9px] text-gray-500">ORBIT: SECTOR 7 HELIPAD • BATTERY: 88%</span>
+                <button class="trm-action-btn">ROUTE</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: System Telemetry & Hardware -->
+        <div class="sos-card">
+          <div class="flex items-center justify-between px-3 py-2 border-b border-sos-border">
+            <span class="text-[11px] font-bold text-white tracking-wide">SYSTEM TELEMETRY & HARDWARE</span>
+            <span class="text-[10px] font-semibold text-sos-cyan tracking-wider">ALL SYSTEMS GO</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 p-2.5">
+            <div class="sys-box">
+              <span class="sys-label">SOS SENSORS</span>
+              <span class="sys-value text-emerald-400">48 / 48 ACTIVE</span>
+            </div>
+            <div class="sys-box">
+              <span class="sys-label">SATELLITE LINK</span>
+              <span class="sys-value text-emerald-400">14ms [SECURE]</span>
+            </div>
+            <div class="sys-box">
+              <span class="sys-label">BACKUP POWER</span>
+              <span class="sys-value text-orange-400">98.2% [SOLAR/AUX]</span>
+            </div>
+            <div class="sys-box">
+              <span class="sys-label">SIREN STATIONS</span>
+              <span class="sys-value text-emerald-400">8/8 ONLINE</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </main>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>
